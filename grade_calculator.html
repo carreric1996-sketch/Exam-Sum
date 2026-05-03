@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Grade Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f3ee;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .calc-wrap {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .app-title {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888780;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  /* Score display */
+  .score-display {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e0d8;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .score-label {
+    font-size: 11px;
+    color: #888780;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .score-value {
+    font-size: clamp(40px, 12vw, 56px);
+    font-weight: 600;
+    color: #2c2c2a;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1;
+  }
+
+  .score-meta {
+    text-align: right;
+    padding-bottom: 4px;
+  }
+
+  .score-count {
+    font-size: 13px;
+    color: #888780;
+  }
+
+  .score-count span {
+    font-weight: 600;
+    color: #2c2c2a;
+    font-family: 'Courier New', Courier, monospace;
+  }
+
+  /* Point buttons grid */
+  .btn-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .grade-btn {
+    background: #fff;
+    border: 1px solid #d3d1c7;
+    border-radius: 12px;
+    padding: clamp(14px, 4vw, 20px) 8px;
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+    color: #2c2c2a;
+    cursor: pointer;
+    transition: background 0.1s, transform 0.1s, border-color 0.1s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .grade-btn:hover {
+    background: #f4f3ee;
+    border-color: #b4b2a9;
+  }
+
+  .grade-btn:active {
+    transform: scale(0.95);
+    background: #e8f5ef;
+    border-color: #5dcaa5;
+  }
+
+  .grade-btn.flashed {
+    background: #e8f5ef;
+    border-color: #5dcaa5;
+  }
+
+  .grade-btn .plus {
+    font-size: 10px;
+    color: #888780;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .ctrl-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #d3d1c7;
+    background: #fff;
+    color: #5f5e5a;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .ctrl-btn:hover { background: #f4f3ee; }
+  .ctrl-btn:active { transform: scale(0.97); }
+
+  .ctrl-btn.danger:hover {
+    background: #fcebeb;
+    color: #a32d2d;
+    border-color: #f09595;
+  }
+
+  /* History */
+  .history-wrap {
+    background: #fff;
+    border: 1px solid #e2e0d8;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .history-header {
+    padding: 9px 14px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #888780;
+    border-bottom: 1px solid #e2e0d8;
+    background: #f4f3ee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-list {
+    max-height: 220px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid #f1efe8;
+    font-size: 13px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+
+  .history-item.undone {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .h-step { color: #888780; font-family: 'Courier New', monospace; font-size: 11px; min-width: 28px; }
+  .h-val  { font-family: 'Courier New', monospace; font-weight: 600; color: #0f6e56; font-size: 14px; }
+  .h-running { color: #888780; font-family: 'Courier New', monospace; font-size: 12px; }
+
+  .empty-state {
+    padding: 28px;
+    text-align: center;
+    color: #b4b2a9;
+    font-size: 13px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a18; }
+    .app-title { color: #5f5e5a; }
+    .score-display, .grade-btn, .ctrl-btn, .history-wrap { background: #26262a; border-color: #3a3a36; }
+    .score-value, .score-count span { color: #f1efe8; }
+    .score-label, .score-count, .plus, .h-step, .h-running { color: #5f5e5a; }
+    .grade-btn { color: #f1efe8; }
+    .grade-btn:hover { background: #2e2e2b; border-color: #5f5e5a; }
+    .grade-btn.flashed, .grade-btn:active { background: #0a2e22; border-color: #1d9e75; }
+    .ctrl-btn { color: #888780; border-color: #3a3a36; }
+    .ctrl-btn:hover { background: #2e2e2b; color: #f1efe8; }
+    .ctrl-btn.danger:hover { background: #2e1515; color: #f09595; border-color: #a32d2d; }
+    .history-wrap { border-color: #3a3a36; }
+    .history-header { background: #1e1e1c; border-color: #3a3a36; }
+    .history-item { border-color: #2e2e2b; }
+    .h-val { color: #5dcaa5; }
+    .empty-state { color: #3a3a36; }
+  }
+</style>
+</head>
+<body>
+<div class="calc-wrap">
+  <p class="app-title">Exam Grade Calculator</p>
+
+  <div class="score-display">
+    <div>
+      <div class="score-label">Total score</div>
+      <div class="score-value" id="total">0.00</div>
+    </div>
+    <div class="score-meta">
+      <div class="score-count">Questions: <span id="count">0</span></div>
+    </div>
+  </div>
+
+  <div class="btn-grid" id="btn-grid"></div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="undoLast()">↩ Undo</button>
+    <button class="ctrl-btn danger" onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="history-wrap">
+    <div class="history-header">
+      <span>History</span>
+      <span id="history-total-label"></span>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="empty-state">Click a button to start grading</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const POINTS = [0.25, 0.50, 0.75, 1.00, 1.50, 2.00];
+  let history = [];
+
+  function getTotal() {
+    return history.filter(h => !h.undone).reduce((s, h) => s + h.val, 0);
+  }
+  function getCount() {
+    return history.filter(h => !h.undone).length;
+  }
+
+  function render() {
+    const total = getTotal();
+    const count = getCount();
+    document.getElementById('total').textContent = total.toFixed(2);
+    document.getElementById('count').textContent = count;
+    document.getElementById('history-total-label').textContent = count > 0 ? 'Total: ' + total.toFixed(2) : '';
+
+    const list = document.getElementById('history-list');
+    if (history.length === 0) {
+      list.innerHTML = '<div class="empty-state">Click a button to start grading</div>';
+      return;
+    }
+    let running = 0;
+    list.innerHTML = history.map((h, i) => {
+      if (!h.undone) running += h.val;
+      return `<div class="history-item${h.undone ? ' undone' : ''}">
+        <span class="h-step">#${i + 1}</span>
+        <span class="h-val">${h.undone ? '—' : '+' + h.val.toFixed(2)}</span>
+        <span class="h-running">${h.undone ? 'undone' : '= ' + running.toFixed(2)}</span>
+      </div>`;
+    }).reverse().join('');
+  }
+
+  function addPoints(val, btn) {
+    history.push({ val, undone: false });
+    btn.classList.add('flashed');
+    setTimeout(() => btn.classList.remove('flashed'), 200);
+    render();
+    document.getElementById('history-list').scrollTop = 0;
+  }
+
+  function undoLast() {
+    const last = [...history].reverse().find(h => !h.undone);
+    if (last) { last.undone = true; render(); }
+  }
+
+  function resetAll() {
+    if (history.length === 0) return;
+    if (confirm('Reset all grades?')) { history = []; render(); }
+  }
+
+  const grid = document.getElementById('btn-grid');
+  POINTS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'grade-btn';
+    btn.innerHTML = `<span>${p.toFixed(2)}</span><span class="plus">points</span>`;
+    btn.addEventListener('click', () => addPoints(p, btn));
+    grid.appendChild(btn);
+  });
+
+  render();
+</script>
+</body>
+</html>
